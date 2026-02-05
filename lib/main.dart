@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'student_login_screen.dart'; // Ensure this file exists
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Load the .env file containing your secret keys
+  await dotenv.load(fileName: ".env");
+
+  // 2. Initialize Supabase using the keys from .env
+  // We use '!' to assert that the values exist. If .env is missing, this will crash (intentionally)
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
+
   runApp(const GrievanceApp());
 }
 
@@ -11,9 +26,16 @@ class GrievanceApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Campus Grievance System',
+      debugShowCheckedModeBanner: false, // Removes the red "Debug" banner
       theme: ThemeData(
+        // Defining a consistent color scheme for the app
         primarySwatch: Colors.blue,
         useMaterial3: true,
+        inputDecorationTheme: const InputDecorationTheme(
+          border: OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors.white,
+        ),
       ),
       home: const LandingScreen(),
     );
@@ -34,7 +56,7 @@ class LandingScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Logo or Icon Section
+              // 1. Logo Section
               const Icon(
                 Icons.school_rounded,
                 size: 100,
@@ -44,7 +66,7 @@ class LandingScreen extends StatelessWidget {
 
               // 2. Title Section
               const Text(
-                'FlagCC',
+                'Campus Grievance\nReporting System',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,
@@ -71,13 +93,13 @@ class LandingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Student Login Button
+              // Student Login Button -> Navigates to StudentLoginScreen
               ElevatedButton.icon(
                 onPressed: () {
-                  // Navigate to Student Login Placeholder
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const StudentLoginPlaceholder()),
+                    MaterialPageRoute(
+                        builder: (context) => const StudentLoginScreen()),
                   );
                 },
                 icon: const Icon(Icons.person),
@@ -86,7 +108,8 @@ class LandingScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: Colors.blueAccent,
                   foregroundColor: Colors.white,
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textStyle: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -94,13 +117,13 @@ class LandingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Admin Login Button (Outlined style to differentiate)
+              // Admin Login Button -> Placeholder for now
               OutlinedButton.icon(
                 onPressed: () {
-                  // Navigate to Admin Login Placeholder
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AdminLoginPlaceholder()),
+                    MaterialPageRoute(
+                        builder: (context) => const AdminLoginPlaceholder()),
                   );
                 },
                 icon: const Icon(Icons.admin_panel_settings),
@@ -109,7 +132,8 @@ class LandingScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   foregroundColor: Colors.blueAccent,
                   side: const BorderSide(color: Colors.blueAccent, width: 2),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textStyle: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -123,26 +147,14 @@ class LandingScreen extends StatelessWidget {
   }
 }
 
-// --- Placeholder Screens (Just so the buttons work for now) ---
-
-class StudentLoginPlaceholder extends StatelessWidget {
-  const StudentLoginPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Student Login")),
-      body: const Center(child: Text("Student Login Form Goes Here")),
-    );
-  }
-}
-
+// --- Admin Placeholder (Kept here until we build the Admin file) ---
 class AdminLoginPlaceholder extends StatelessWidget {
   const AdminLoginPlaceholder({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Admin Login")),
-      body: const Center(child: Text("Admin Login Form Goes Here")),
+      body: const Center(child: Text("Admin Logic coming soon...")),
     );
   }
 }
