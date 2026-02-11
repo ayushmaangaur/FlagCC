@@ -15,21 +15,39 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
 
   // SIGN UP FUNCTION
   Future<void> _signUp() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // 1. DOMAIN CHECK (Frontend Validation)
+    if (!email.endsWith('@vitstudent.ac.in')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration Restricted: Please use your "@vitstudent.ac.in" email.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return; // Stop execution here
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters.')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // 1. Attempt to create a user in Supabase
-      // CRITICAL UPDATE: We added the 'data' parameter to assign the 'student' role
+      // 2. Create user (No metadata needed now)
       await Supabase.instance.client.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-        data: {'role': 'student'}, // <--- This assigns the role
+        email: email,
+        password: password,
       );
 
       if (mounted) {
-        // 2. Success! Show message and go back to login
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Account created! Please log in.'),
@@ -47,9 +65,7 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Error creating account'),
-              backgroundColor: Colors.red),
+          const SnackBar(content: Text('Error creating account'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -80,7 +96,8 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(
-                labelText: 'Email',
+                labelText: 'VIT Student Email',
+                hintText: 'user@vitstudent.ac.in',
                 prefixIcon: Icon(Icons.email),
                 border: OutlineInputBorder(),
               ),

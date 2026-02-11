@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentReportScreen extends StatefulWidget {
   const StudentReportScreen({super.key});
@@ -12,33 +13,115 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
   String? selectedLocation;
   String? selectedIssueType;
   final TextEditingController descriptionController = TextEditingController();
+  bool _isLoading = false;
 
-  // Data for the dropdowns
-  final List<String> locations = [
-    'Academic Block 1',
-    'Academic Block 2',
-    'Academic Block 3',
-    'Academic Block 4'
-    'Library',
-    'Admin Block',
-    'North Square',
-    'Gazebo',
-    'A Block Hostel',
-    'B Block Hostel',
-    'C Block Hostel',
-    'D1 Block Hostel',
-    'D2 Block Hostel',
-    'Sports Ground',
-  ];
+  // 2. Lists to hold data fetched from Supabase
+  List<String> locations = [];
+  List<String> issueTypes = [];
 
-  final List<String> issueTypes = [
-    'Electrical (Switch/Fan/Light)',
-    'Water/Plumbing',
-    'Furniture/Broken Items',
-    'Cleanliness/Hygiene',
-    'Food Quality',
-    'Other',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchDropdownOptions(); // Fetch real data on load
+  }
+
+  // --- FETCH OPTIONS FROM SUPABASE ---
+  Future<void> _fetchDropdownOptions() async {
+    try {
+      // NOTE: Once you have dashboard access, check if these table names
+      // are 'locations' vs 'Locations' and 'issue_types' vs 'issueTypes'
+
+      // Fetch locations
+      final locData = await Supabase.instance.client
+          .from('locations') // <--- Verify this name in Dashboard
+          .select('name')
+          .order('name', ascending: true);
+
+      // Fetch issue types
+      final typeData = await Supabase.instance.client
+          .from('issue_types') // <--- Verify this name in Dashboard
+          .select('name')
+          .order('name', ascending: true);
+
+      if (mounted) {
+        setState(() {
+          locations = List<String>.from(locData.map((e) => e['name']));
+          issueTypes = List<String>.from(typeData.map((e) => e['name']));
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        // If this prints "PGRST205", the table name is wrong or RLS is blocking it
+        print("Error fetching options: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not load options. Check Admin Dashboard.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // --- SUBMIT REPORT FUNCTION ---
+  Future<void> _submitReport() async {
+    if (selectedLocation == null ||
+        selectedIssueType == null ||
+        descriptionController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+
+      // INSERT into 'grievances' table
+      await Supabase.instance.client.from('grievances').insert({
+        'user_id': userId,
+        'location': selectedLocation,
+        'issue_type': selectedIssueType,
+        'description': descriptionController.text.trim(),
+        'status': 'Pending',
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Report Submitted Successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context); // Go back to Dashboard
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Submission failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +131,9 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -59,7 +144,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 2. Location Dropdown
+            // 1. LOCATION DROPDOWN
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'Location',
@@ -67,6 +152,8 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                 prefixIcon: Icon(Icons.location_on),
               ),
               value: selectedLocation,
+              hint: const Text("Select Location"),
+              // If list is empty (fetch failed), show nothing
               items: locations.map((String loc) {
                 return DropdownMenuItem(value: loc, child: Text(loc));
               }).toList(),
@@ -78,7 +165,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 3. Issue Type Dropdown
+            // 2. ISSUE TYPE DROPDOWN
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'Type of Problem',
@@ -86,6 +173,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                 prefixIcon: Icon(Icons.warning),
               ),
               value: selectedIssueType,
+              hint: const Text("Select Issue Type"),
               items: issueTypes.map((String type) {
                 return DropdownMenuItem(value: type, child: Text(type));
               }).toList(),
@@ -97,7 +185,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 4. Description Text Field
+            // 3. DESCRIPTION
             TextField(
               controller: descriptionController,
               maxLines: 4,
@@ -108,43 +196,11 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                 alignLabelWithHint: true,
               ),
             ),
-            const SizedBox(height: 20),
-
-            // 5. Image Upload Placeholder (Visual Only for now)
-            Container(
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey),
-              ),
-              child: InkWell(
-                onTap: () {
-                  // TODO: Implement Camera/Gallery Logic later
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Camera feature coming next!")),
-                  );
-                },
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text('Tap to upload image', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ),
-            ),
             const SizedBox(height: 30),
 
-            // 6. Submit Button
+            // 4. SUBMIT BUTTON
             ElevatedButton(
-              onPressed: () {
-                // For now, just print the data to console to test
-                print("Location: $selectedLocation");
-                print("Issue: $selectedIssueType");
-                print("Desc: ${descriptionController.text}");
-              },
+              onPressed: _submitReport,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Colors.blueAccent,

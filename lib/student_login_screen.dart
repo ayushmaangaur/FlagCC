@@ -11,51 +11,42 @@ class StudentLoginScreen extends StatefulWidget {
 }
 
 class _StudentLoginScreenState extends State<StudentLoginScreen> {
-  // 1. Controllers to retrieve text from inputs
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  // 2. Loading state to disable button while processing
   bool _isLoading = false;
 
-  // --- LOGIC: SIGN IN FUNCTION ---
   Future<void> _signIn() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // 1. Attempt to sign in (Checks email/password only)
-      final AuthResponse res =
-      await Supabase.instance.client.auth.signInWithPassword(
+      // 1. Attempt to sign in (Checks email/password match only)
+      final AuthResponse res = await Supabase.instance.client.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       final user = res.user;
 
-      if (user != null) {
-        // 2. SECURITY CHECK: Check the user's role
-        // We use safe navigation (?.) because 'role' might be null for old users
-        final String? role = user.userMetadata?['role'];
-
-        if (role == 'student') {
-          // CORRECT ROLE: Allow access
+      if (user != null && user.email != null) {
+        // 2. DOMAIN CHECK: Validate Email Suffix
+        if (user.email!.endsWith('@vitstudent.ac.in')) {
+          // SUCCESS: It is a student
           if (mounted) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                  builder: (context) => const StudentDashboardScreen()),
+              MaterialPageRoute(builder: (context) => const StudentDashboardScreen()),
             );
           }
         } else {
-          // WRONG ROLE: It's an Admin (or someone else) trying to log in here
-          await Supabase.instance.client.auth.signOut(); // Log them out immediately
+          // FAILURE: It is likely an Admin/Faculty trying to use Student Login
+          await Supabase.instance.client.auth.signOut(); // Log them out
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Access Denied: Use the Admin Login portal.'),
+                content: Text('Access Denied: Only "@vitstudent.ac.in" accounts allowed here.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -63,27 +54,18 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         }
       }
     } on AuthException catch (e) {
-      // Handle Supabase specific errors (e.g., "Invalid login credentials")
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
-      // Handle unexpected errors
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('An unexpected error occurred'),
-            backgroundColor: Colors.red,
-          ),
+          const SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
         );
       }
     } finally {
-      // Turn off loading spinner regardless of success/failure
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -99,7 +81,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     super.dispose();
   }
 
-  // --- UI: BUILD METHOD ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,13 +97,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Icon
                 const Icon(Icons.school, size: 80, color: Colors.blueAccent),
                 const SizedBox(height: 20),
-
-                // Welcome Text
                 const Text(
-                  'Welcome Back',
+                  'Student Portal',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
@@ -132,7 +110,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 TextField(
                   controller: _emailController,
                   decoration: const InputDecoration(
-                    labelText: 'Email',
+                    labelText: 'VIT Student Email',
+                    hintText: 'user@vitstudent.ac.in',
                     prefixIcon: Icon(Icons.email),
                     border: OutlineInputBorder(),
                   ),
@@ -143,7 +122,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 // Password Input
                 TextField(
                   controller: _passwordController,
-                  obscureText: true, // Hides the password
+                  obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Password',
                     prefixIcon: Icon(Icons.lock),
@@ -164,38 +143,26 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                       ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                   )
-                      : const Text(
-                    'LOGIN',
-                    style: TextStyle(fontSize: 18),
-                  ),
+                      : const Text('LOGIN', style: TextStyle(fontSize: 18)),
                 ),
 
                 const SizedBox(height: 24),
 
-                // "Register Here" Link
+                // Register Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Don't have an account?"),
                     TextButton(
                       onPressed: () {
-                        // Navigate to the Sign Up Screen
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                              const StudentSignUpScreen()),
+                          MaterialPageRoute(builder: (context) => const StudentSignUpScreen()),
                         );
                       },
-                      child: const Text(
-                        'Register Here',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      child: const Text('Register Here', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
