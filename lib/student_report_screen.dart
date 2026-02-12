@@ -9,207 +9,271 @@ class StudentReportScreen extends StatefulWidget {
 }
 
 class _StudentReportScreenState extends State<StudentReportScreen> {
-  // 1. Variables to store user choices
-  String? selectedLocation;
-  String? selectedIssueType;
+  // --- Controllers ---
+  final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+
+  // --- State Variables ---
+  String? selectedCategory;
+  String? selectedAreaType;
+  String? selectedSpecificLocation;
+
+  bool isPrivate = false;
   bool _isLoading = false;
 
-  // 2. Lists to hold data fetched from Supabase
-  List<String> locations = [];
-  List<String> issueTypes = [];
+  // --- HIERARCHICAL DATA ---
+  final Map<String, List<String>> locationHierarchy = {
+    'Academic Zone': ['Academic Block 1', 'Academic Block 2', 'Academic Block 3', 'Academic Block 4'],
+    'Hostels': ['A Block Hostel', 'B Block Hostel', 'C Block Hostel', 'D1 Block Hostel', 'D2 Block Hostel'],
+    'Common Areas': ['Library', 'Admin Block', 'North Square', 'Gazebo', 'Sports Ground', 'Canteen', 'Main Gate'],
+  };
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchDropdownOptions(); // Fetch real data on load
-  }
+  final List<String> categories = ['Electrical', 'Plumbing', 'Furniture', 'Cleanliness', 'Wifi/Network', 'Other'];
 
-  // --- FETCH OPTIONS FROM SUPABASE ---
-  Future<void> _fetchDropdownOptions() async {
-    try {
-      // NOTE: Once you have dashboard access, check if these table names
-      // are 'locations' vs 'Locations' and 'issue_types' vs 'issueTypes'
-
-      // Fetch locations
-      final locData = await Supabase.instance.client
-          .from('locations') // <--- Verify this name in Dashboard
-          .select('name')
-          .order('name', ascending: true);
-
-      // Fetch issue types
-      final typeData = await Supabase.instance.client
-          .from('issue_types') // <--- Verify this name in Dashboard
-          .select('name')
-          .order('name', ascending: true);
-
-      if (mounted) {
-        setState(() {
-          locations = List<String>.from(locData.map((e) => e['name']));
-          issueTypes = List<String>.from(typeData.map((e) => e['name']));
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        // If this prints "PGRST205", the table name is wrong or RLS is blocking it
-        print("Error fetching options: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not load options. Check Admin Dashboard.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // --- SUBMIT REPORT FUNCTION ---
+  // --- SUBMIT FUNCTION ---
   Future<void> _submitReport() async {
-    if (selectedLocation == null ||
-        selectedIssueType == null ||
+    if (titleController.text.isEmpty ||
+        selectedCategory == null ||
+        selectedSpecificLocation == null ||
         descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields.')),
+        const SnackBar(content: Text('Please fill in all required fields.'), backgroundColor: Colors.red),
       );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final userId = Supabase.instance.client.auth.currentUser!.id;
+      final user = Supabase.instance.client.auth.currentUser!;
 
-      // INSERT into 'grievances' table
       await Supabase.instance.client.from('grievances').insert({
-        'user_id': userId,
-        'location': selectedLocation,
-        'issue_type': selectedIssueType,
+        'user_id': user.id,
+        'user_email': user.email,
+        'title': titleController.text.trim(),
+        'category': selectedCategory,
+        'location': selectedSpecificLocation,
         'description': descriptionController.text.trim(),
-        'status': 'Pending',
+        'privacy': isPrivate ? 'private' : 'public',
+        'status': 'pending',
+        'progress': 0,
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Report Submitted Successfully!'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Grievance Reported Successfully!'), backgroundColor: Colors.green),
         );
-        Navigator.pop(context); // Go back to Dashboard
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Submission failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    descriptionController.dispose();
-    super.dispose();
+  // --- CUSTOM UI BUILDER FOR DROPDOWNS ---
+  // This makes the dropdowns look like modern cards instead of simple lines
+  Widget _buildStyledDropdown({
+    required String? value,
+    required String hint,
+    required IconData icon,
+    required List<String> items,
+    required Function(String?) onChanged,
+    bool enabled = true,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: enabled ? Colors.white : Colors.grey[100], // Grey out if disabled
+        borderRadius: BorderRadius.circular(15), // Rounded corners
+        boxShadow: [
+          if (enabled) // Only show shadow if enabled
+            BoxShadow(
+              color: Colors.blueAccent.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+        ],
+        border: Border.all(
+          color: enabled ? Colors.blueAccent.withOpacity(0.3) : Colors.grey.shade300,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: Row(
+            children: [
+              Icon(icon, color: enabled ? Colors.blueAccent : Colors.grey, size: 22),
+              const SizedBox(width: 12),
+              Text(
+                hint,
+                style: TextStyle(
+                  color: enabled ? Colors.grey[800] : Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          icon: Icon(Icons.arrow_drop_down_circle, color: enabled ? Colors.blueAccent : Colors.grey),
+          isExpanded: true,
+          style: const TextStyle(color: Colors.black87, fontSize: 16),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Row(
+                children: [
+                  // Small dot indicator for list items
+                  Icon(Icons.circle, size: 8, color: Colors.blueAccent.withOpacity(0.6)),
+                  const SizedBox(width: 12),
+                  Text(item),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: enabled ? onChanged : null,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Report a Grievance'),
+        title: const Text('New Grievance'),
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
+      backgroundColor: Colors.grey[50], // Very light background to make cards pop
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Fill in the details below',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                'Fill in the details',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)
+            ),
+            const SizedBox(height: 5),
+            Text(
+                'We will get this sorted for you.',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600])
+            ),
+            const SizedBox(height: 30),
+
+            // 1. TITLE INPUT
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                labelText: 'Short Title',
+                hintText: 'e.g., Broken Fan',
+                prefixIcon: const Icon(Icons.title, color: Colors.blueAccent),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: Colors.blueAccent.withOpacity(0.3)),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 20),
 
-            // 1. LOCATION DROPDOWN
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Location',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
-              ),
-              value: selectedLocation,
-              hint: const Text("Select Location"),
-              // If list is empty (fetch failed), show nothing
-              items: locations.map((String loc) {
-                return DropdownMenuItem(value: loc, child: Text(loc));
-              }).toList(),
-              onChanged: (value) {
+            // 2. CATEGORY DROPDOWN
+            _buildStyledDropdown(
+              value: selectedCategory,
+              hint: "Select Category",
+              icon: Icons.category_outlined,
+              items: categories,
+              onChanged: (val) => setState(() => selectedCategory = val),
+            ),
+
+            // 3. AREA TYPE DROPDOWN
+            _buildStyledDropdown(
+              value: selectedAreaType,
+              hint: "Select Area Type",
+              icon: Icons.map_outlined,
+              items: locationHierarchy.keys.toList(),
+              onChanged: (val) {
                 setState(() {
-                  selectedLocation = value;
+                  selectedAreaType = val;
+                  selectedSpecificLocation = null; // Reset child
                 });
               },
             ),
-            const SizedBox(height: 20),
 
-            // 2. ISSUE TYPE DROPDOWN
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Type of Problem',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.warning),
-              ),
-              value: selectedIssueType,
-              hint: const Text("Select Issue Type"),
-              items: issueTypes.map((String type) {
-                return DropdownMenuItem(value: type, child: Text(type));
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedIssueType = value;
-                });
-              },
+            // 4. SPECIFIC LOCATION DROPDOWN (Cascading)
+            _buildStyledDropdown(
+              value: selectedSpecificLocation,
+              hint: selectedAreaType == null ? "Select Area Type first" : "Select Block/Building",
+              icon: Icons.location_on_outlined,
+              enabled: selectedAreaType != null,
+              items: selectedAreaType == null ? [] : locationHierarchy[selectedAreaType]!,
+              onChanged: (val) => setState(() => selectedSpecificLocation = val),
             ),
-            const SizedBox(height: 20),
 
-            // 3. DESCRIPTION
+            // 5. DESCRIPTION INPUT
             TextField(
               controller: descriptionController,
               maxLines: 4,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Description',
                 hintText: 'Describe the issue in detail...',
-                border: OutlineInputBorder(),
                 alignLabelWithHint: true,
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(bottom: 60), // Align icon to top
+                  child: Icon(Icons.description_outlined, color: Colors.blueAccent),
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: Colors.blueAccent.withOpacity(0.3)),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 6. PRIVACY SWITCH
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+              ),
+              child: SwitchListTile(
+                title: const Text('Private Report', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('Enable anonymous identity.', style: TextStyle(fontSize: 12)),
+                value: isPrivate,
+                activeColor: Colors.blueAccent,
+                secondary: Icon(isPrivate ? Icons.lock : Icons.lock_open, color: Colors.blueAccent),
+                onChanged: (val) => setState(() => isPrivate = val),
               ),
             ),
             const SizedBox(height: 30),
 
-            // 4. SUBMIT BUTTON
+            // 7. SUBMIT BUTTON
             ElevatedButton(
               onPressed: _submitReport,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 18),
                 backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
+                elevation: 5,
+                shadowColor: Colors.blueAccent.withOpacity(0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              child: const Text(
-                'SUBMIT REPORT',
-                style: TextStyle(fontSize: 18),
-              ),
+              child: const Text('SUBMIT REPORT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
             ),
           ],
         ),
