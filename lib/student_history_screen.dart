@@ -47,16 +47,17 @@ class StudentHistoryScreen extends StatelessWidget {
     final _grievanceStream = Supabase.instance.client
         .from('grievances')
         .stream(primaryKey: ['id'])
-        .eq('user_id', userId) // <--- THIS LINE WAS MISSING
+        .eq('user_id', userId)
         .order('created_at', ascending: false);
 
     return Scaffold(
+      backgroundColor: Colors.grey[50], // Match the clean dashboard background
       appBar: AppBar(
-        title: const Text('Full Report History'),
-        backgroundColor: Colors.blueAccent,
+        title: const Text('My Report History', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.blue[800], // Deep blue to match the new theme
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      backgroundColor: Colors.grey[100],
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _grievanceStream,
         builder: (context, snapshot) {
@@ -70,13 +71,13 @@ class StudentHistoryScreen extends StatelessWidget {
           final reports = snapshot.data!;
 
           if (reports.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history_toggle_off, size: 60, color: Colors.grey),
-                  SizedBox(height: 10),
-                  Text('No history found.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  Icon(Icons.history_toggle_off, size: 60, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text('No history found.', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
                 ],
               ),
             );
@@ -97,31 +98,67 @@ class StudentHistoryScreen extends StatelessWidget {
               final color = _getStatusColor(status);
               final icon = _getStatusIcon(status);
 
+              // --- NEW FLAT CARD DESIGN ---
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
+                elevation: 0,
+                color: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: color.withOpacity(0.5)),
+                  side: BorderSide(color: Colors.grey.shade300, width: 1), // Crisp grey border
                 ),
-                child: ListTile(
+                child: InkWell(
                   onTap: () => _goToDetails(context, report),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: CircleAvatar(
-                    backgroundColor: color.withOpacity(0.1),
-                    child: Icon(icon, color: color),
-                  ),
-                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("$location • $date"),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: color),
-                    ),
-                    child: Text(
-                      status.toUpperCase().replaceAll('_', ' '),
-                      style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Icon Avatar
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: color.withOpacity(0.1),
+                          child: Icon(icon, color: color, size: 22),
+                        ),
+                        const SizedBox(width: 16),
+
+                        // Main Content
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                  "$location • $date",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 13)
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // Status Pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: color.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20)
+                          ),
+                          child: Text(
+                              status.toUpperCase().replaceAll('_', ' '),
+                              style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

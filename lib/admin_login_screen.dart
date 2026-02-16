@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'student_dashboard_screen.dart';
+import 'admin_dashboard_screen.dart'; // <-- Added the import for the dashboard
 
-class StudentLoginScreen extends StatefulWidget {
-  const StudentLoginScreen({super.key});
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
 
   @override
-  State<StudentLoginScreen> createState() => _StudentLoginScreenState();
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
 
-class _StudentLoginScreenState extends State<StudentLoginScreen> {
+class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
   // --- LOGIN FUNCTION ---
-  Future<void> _studentLogin() async {
+  Future<void> _adminLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    // --- DOMAIN RESTRICTION CHECK ---
+    if (!email.toLowerCase().endsWith('@vit.ac.in')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Access Denied: Only @vit.ac.in emails are allowed for Admins.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -35,11 +46,16 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         password: password,
       );
 
-      // If successful, navigate to Student Dashboard
+      // If successful, navigate to Admin Dashboard
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Admin Login Successful!'), backgroundColor: Colors.green),
+        );
+
+        // --- UNCOMMENTED NAVIGATION CODE ---
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const StudentDashboardScreen()),
+          MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
         );
       }
     } catch (e) {
@@ -55,20 +71,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     }
   }
 
-  // --- NAVIGATION TO REGISTER ---
-  void _goToRegister() {
-    // Replace `StudentRegisterScreen()` with your actual registration widget name once created
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => const StudentRegisterScreen()),
-    // );
-
-    // Placeholder snackbar until you link the screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigation to Registration Screen...')),
-    );
-  }
-
   @override
   void dispose() {
     _emailController.dispose();
@@ -81,8 +83,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('Student Access'),
-        backgroundColor: Colors.blue[900], // Exact match to Admin Appbar
+        title: const Text('Admin Access'),
+        backgroundColor: Colors.blue[900],
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -94,26 +96,26 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // --- HEADER ---
-              Icon(Icons.school, size: 80, color: Colors.blue[900]), // Match Admin Icon Size & Color
+              Icon(Icons.admin_panel_settings, size: 80, color: Colors.blue[900]),
               const SizedBox(height: 20),
               Text(
-                'Student Portal',
+                'Admin Portal',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[900], // Match Admin Title Color
+                  color: Colors.blue[900],
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Login to report and track campus grievances',
+                'Authorized Personnel Only\n(Requires @vit.ac.in domain)',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 40),
 
-              // --- LOGIN CARD (Identical to Admin Card) ---
+              // --- LOGIN CARD ---
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -125,9 +127,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          labelText: 'VIT Student Email',
-                          hintText: 'name@vitstudent.ac.in',
-                          prefixIcon: const Icon(Icons.email), // Solid icon like admin
+                          labelText: 'Admin Email',
+                          hintText: 'name@vit.ac.in',
+                          prefixIcon: const Icon(Icons.email),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -137,7 +139,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                         obscureText: true,
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock), // Solid icon like admin
+                          prefixIcon: const Icon(Icons.lock),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -146,7 +148,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _studentLogin,
+                          onPressed: _isLoading ? null : _adminLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue[900],
                             foregroundColor: Colors.white,
@@ -160,23 +162,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                     ],
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // --- REGISTER LINK ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Don't have an account?", style: TextStyle(color: Colors.grey[700])),
-                  TextButton(
-                    onPressed: _goToRegister,
-                    child: Text(
-                      'Register Here',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900]),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),

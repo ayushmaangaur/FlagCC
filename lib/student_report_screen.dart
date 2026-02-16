@@ -9,11 +9,9 @@ class StudentReportScreen extends StatefulWidget {
 }
 
 class _StudentReportScreenState extends State<StudentReportScreen> {
-  // --- Controllers ---
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
-  // --- State Variables ---
   String? selectedCategory;
   String? selectedAreaType;
   String? selectedSpecificLocation;
@@ -21,16 +19,22 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
   bool isPrivate = false;
   bool _isLoading = false;
 
-  // --- HIERARCHICAL DATA ---
   final Map<String, List<String>> locationHierarchy = {
     'Academic Zone': ['Academic Block 1', 'Academic Block 2', 'Academic Block 3', 'Academic Block 4'],
     'Hostels': ['A Block Hostel', 'B Block Hostel', 'C Block Hostel', 'D1 Block Hostel', 'D2 Block Hostel'],
     'Common Areas': ['Library', 'Admin Block', 'North Square', 'Gazebo', 'Sports Ground', 'Canteen', 'Main Gate'],
   };
 
-  final List<String> categories = ['Electrical', 'Plumbing', 'Furniture', 'Cleanliness', 'Wifi/Network', 'Other'];
+  // Your original categories
+  final List<String> categories = [
+    'Electrical',
+    'Plumbing',
+    'Furniture',
+    'Cleanliness',
+    'Wifi/Network',
+    'Other'
+  ];
 
-  // --- SUBMIT FUNCTION ---
   Future<void> _submitReport() async {
     if (titleController.text.isEmpty ||
         selectedCategory == null ||
@@ -74,8 +78,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
     }
   }
 
-  // --- CUSTOM UI BUILDER FOR DROPDOWNS ---
-  // This makes the dropdowns look like modern cards instead of simple lines
+  // --- REDESIGNED DROPDOWN TO MATCH DASHBOARD STYLE ---
   Widget _buildStyledDropdown({
     required String? value,
     required String hint,
@@ -87,18 +90,10 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: enabled ? Colors.white : Colors.grey[100], // Grey out if disabled
-        borderRadius: BorderRadius.circular(15), // Rounded corners
-        boxShadow: [
-          if (enabled) // Only show shadow if enabled
-            BoxShadow(
-              color: Colors.blueAccent.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-        ],
+        color: enabled ? Colors.white : Colors.grey[100],
+        borderRadius: BorderRadius.circular(12), // Adjusted to match dashboard cards
         border: Border.all(
-          color: enabled ? Colors.blueAccent.withOpacity(0.3) : Colors.grey.shade300,
+          color: enabled ? Colors.grey.shade300 : Colors.grey.shade200,
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -107,33 +102,23 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
           value: value,
           hint: Row(
             children: [
-              Icon(icon, color: enabled ? Colors.blueAccent : Colors.grey, size: 22),
+              Icon(icon, color: enabled ? Colors.blue[800] : Colors.grey, size: 22),
               const SizedBox(width: 12),
               Text(
                 hint,
-                style: TextStyle(
-                  color: enabled ? Colors.grey[800] : Colors.grey,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: enabled ? Colors.grey[800] : Colors.grey, fontSize: 16),
               ),
             ],
           ),
-          icon: Icon(Icons.arrow_drop_down_circle, color: enabled ? Colors.blueAccent : Colors.grey),
+          icon: Icon(Icons.keyboard_arrow_down, color: enabled ? Colors.blue[800] : Colors.grey),
           isExpanded: true,
           style: const TextStyle(color: Colors.black87, fontSize: 16),
           dropdownColor: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(12),
           items: items.map((String item) {
             return DropdownMenuItem<String>(
               value: item,
-              child: Row(
-                children: [
-                  // Small dot indicator for list items
-                  Icon(Icons.circle, size: 8, color: Colors.blueAccent.withOpacity(0.6)),
-                  const SizedBox(width: 12),
-                  Text(item),
-                ],
-              ),
+              child: Text(item),
             );
           }).toList(),
           onChanged: enabled ? onChanged : null,
@@ -146,12 +131,12 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Grievance'),
-        backgroundColor: Colors.blueAccent,
+        title: const Text('New Grievance', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.blue[800], // Darker blue to match dashboard
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      backgroundColor: Colors.grey[50], // Very light background to make cards pop
+      backgroundColor: Colors.grey[50], // Match dashboard background
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -159,28 +144,26 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-                'Fill in the details',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)
-            ),
+            const Text('Fill in the details', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
             const SizedBox(height: 5),
-            Text(
-                'We will get this sorted for you.',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600])
-            ),
+            Text('We will get this sorted for you.', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
             const SizedBox(height: 30),
 
-            // 1. TITLE INPUT
+            // --- TITLE FIELD ---
             TextField(
               controller: titleController,
               decoration: InputDecoration(
                 labelText: 'Short Title',
                 hintText: 'e.g., Broken Fan',
-                prefixIcon: const Icon(Icons.title, color: Colors.blueAccent),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                prefixIcon: Icon(Icons.title, color: Colors.blue[800]),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(color: Colors.blueAccent.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.blue[800]!, width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -188,7 +171,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 2. CATEGORY DROPDOWN
+            // --- DROPDOWNS ---
             _buildStyledDropdown(
               value: selectedCategory,
               hint: "Select Category",
@@ -197,7 +180,6 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
               onChanged: (val) => setState(() => selectedCategory = val),
             ),
 
-            // 3. AREA TYPE DROPDOWN
             _buildStyledDropdown(
               value: selectedAreaType,
               hint: "Select Area Type",
@@ -206,12 +188,11 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
               onChanged: (val) {
                 setState(() {
                   selectedAreaType = val;
-                  selectedSpecificLocation = null; // Reset child
+                  selectedSpecificLocation = null;
                 });
               },
             ),
 
-            // 4. SPECIFIC LOCATION DROPDOWN (Cascading)
             _buildStyledDropdown(
               value: selectedSpecificLocation,
               hint: selectedAreaType == null ? "Select Area Type first" : "Select Block/Building",
@@ -221,7 +202,7 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
               onChanged: (val) => setState(() => selectedSpecificLocation = val),
             ),
 
-            // 5. DESCRIPTION INPUT
+            // --- DESCRIPTION FIELD ---
             TextField(
               controller: descriptionController,
               maxLines: 4,
@@ -229,14 +210,18 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
                 labelText: 'Description',
                 hintText: 'Describe the issue in detail...',
                 alignLabelWithHint: true,
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.only(bottom: 60), // Align icon to top
-                  child: Icon(Icons.description_outlined, color: Colors.blueAccent),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(bottom: 60),
+                  child: Icon(Icons.description_outlined, color: Colors.blue[800]),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(color: Colors.blueAccent.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.blue[800]!, width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -244,37 +229,38 @@ class _StudentReportScreenState extends State<StudentReportScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 6. PRIVACY SWITCH
+            // --- PRIVATE REPORT TOGGLE ---
             Container(
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
               ),
               child: SwitchListTile(
-                title: const Text('Private Report', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Enable anonymous identity.', style: TextStyle(fontSize: 12)),
+                title: const Text('Private Report', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                subtitle: Text('Only admins will see this.', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                 value: isPrivate,
-                activeColor: Colors.blueAccent,
-                secondary: Icon(isPrivate ? Icons.lock : Icons.lock_open, color: Colors.blueAccent),
+                activeColor: Colors.blue[800],
+                activeTrackColor: Colors.blue[800]!.withOpacity(0.3),
+                secondary: Icon(isPrivate ? Icons.lock : Icons.lock_open, color: isPrivate ? Colors.blue[800] : Colors.grey),
                 onChanged: (val) => setState(() => isPrivate = val),
               ),
             ),
             const SizedBox(height: 30),
 
-            // 7. SUBMIT BUTTON
+            // --- SUBMIT BUTTON ---
             ElevatedButton(
               onPressed: _submitReport,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: Colors.blue[800],
                 foregroundColor: Colors.white,
-                elevation: 5,
-                shadowColor: Colors.blueAccent.withOpacity(0.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                elevation: 0, // Flat look to match the new theme
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('SUBMIT REPORT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              child: const Text('SUBMIT REPORT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
