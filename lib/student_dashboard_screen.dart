@@ -41,23 +41,29 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     }
   }
 
-  void _goToReportScreen() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentReportScreen()));
+  // --- THE BUG FIX IS HERE ---
+  // Added async, await, and setState to force a refresh when returning to this screen
+  Future<void> _goToReportScreen() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentReportScreen()));
+    setState(() {}); // Forces the dashboard to reload fresh data
   }
 
-  void _goToHistory() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentHistoryScreen()));
+  Future<void> _goToHistory() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentHistoryScreen()));
+    setState(() {}); // Forces the dashboard to reload fresh data
   }
 
-  void _goToCommunity() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const CommunityPage()));
+  Future<void> _goToCommunity() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => const CommunityPage()));
+    setState(() {}); // Forces the dashboard to reload fresh data
   }
 
-  void _goToDetails(Map<String, dynamic> report) {
-    Navigator.push(
+  Future<void> _goToDetails(Map<String, dynamic> report) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => StudentReportDetailScreen(report: report)),
     );
+    setState(() {}); // Forces the dashboard to reload fresh data
   }
 
   Color _getStatusColor(String status) {
@@ -85,7 +91,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final myReportsStream = Supabase.instance.client
         .from('grievances')
         .stream(primaryKey: ['id'])
-        .eq('user_id', userId) // <--- THIS LINE ENSURES STATS ARE ONLY FOR THIS STUDENT
+        .eq('user_id', userId)
         .order('created_at', ascending: false);
 
     // Community Stream (Fetches all public, limited to 5 for the preview)
