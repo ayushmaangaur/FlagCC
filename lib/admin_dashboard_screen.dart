@@ -36,7 +36,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  // Uses async/await and setState to refresh the list when returning
   Future<void> _goToAdminDetails(Map<String, dynamic> report) async {
     await Navigator.push(context, MaterialPageRoute(builder: (context) => AdminReportDetailScreen(report: report)));
     setState(() {});
@@ -58,7 +57,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final adminEmail = Supabase.instance.client.auth.currentUser?.email ?? 'staff@vit.ac.in';
 
-    // Filters the stream by the selected department
     final _stream = Supabase.instance.client
         .from('grievances')
         .stream(primaryKey: ['id'])
@@ -177,6 +175,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
+
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
@@ -221,11 +220,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       final displayStatus = rawStatus.toString().toUpperCase().replaceAll('_', ' ');
                       final color = _getStatusColor(rawStatus);
 
+                      // --- HIGHLIGHT IF PINGED ---
+                      final isPinged = report['is_pinged'] == true;
+
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         elevation: 0,
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade300)),
+                        color: isPinged ? Colors.orange[50] : Colors.white, // Highlight if pinged
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: isPinged ? Colors.orange : Colors.grey.shade300, width: isPinged ? 2 : 1)
+                        ),
                         child: InkWell(
                           onTap: () => _goToAdminDetails(report),
                           borderRadius: BorderRadius.circular(12),
@@ -236,6 +241,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               children: [
                                 Row(
                                   children: [
+                                    if (isPinged) const Padding(padding: EdgeInsets.only(right: 8), child: Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20)),
                                     Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

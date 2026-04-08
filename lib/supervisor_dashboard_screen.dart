@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'student_report_detail_screen.dart'; // Uses Student view for Read-Only access
+import 'supervisor_report_detail_screen.dart'; // <-- Using the new Supervisor screen
 import 'main.dart';
 
 class SupervisorDashboardScreen extends StatefulWidget {
@@ -43,10 +43,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
     }
   }
 
-  // Uses async/await and setState to refresh the global list when returning
-  Future<void> _viewDetailsReadOnly(Map<String, dynamic> report) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (context) => StudentReportDetailScreen(report: report)));
-    setState(() {});
+  // --- Opens the new Supervisor Detail Screen ---
+  Future<void> _viewDetailsAsSupervisor(Map<String, dynamic> report) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => SupervisorReportDetailScreen(report: report)));
+    setState(() {}); // Refresh data on return
   }
 
   Color _getStatusColor(String status) {
@@ -65,7 +65,6 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
   Widget build(BuildContext context) {
     final directorEmail = Supabase.instance.client.auth.currentUser?.email ?? 'supervisor@vit.ac.in';
 
-    // Stream fetches EVERYTHING. No department filter.
     final _stream = Supabase.instance.client
         .from('grievances')
         .stream(primaryKey: ['id'])
@@ -89,7 +88,6 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
         ],
       ),
 
-      // --- NEW: SIDEBAR (DRAWER) ADDED FOR SUPERVISOR ---
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -100,7 +98,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               accountEmail: Text(directorEmail),
               currentAccountPicture: const CircleAvatar(
                 backgroundColor: Colors.white,
-                child: Icon(Icons.shield, size: 40, color: Colors.blue), // Shield icon for Director
+                child: Icon(Icons.shield, size: 40, color: Colors.blue),
               ),
             ),
             ListTile(
@@ -108,7 +106,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               title: const Text('Global Overview'),
               selected: true,
               onTap: () {
-                Navigator.pop(context); // Just closes the drawer
+                Navigator.pop(context);
               },
             ),
             const Divider(),
@@ -222,15 +220,25 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                       final displayStatus = rawStatus.toString().toUpperCase().replaceAll('_', ' ');
                       final color = _getStatusColor(rawStatus);
 
+                      final isPinged = report['is_pinged'] == true;
+
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         elevation: 0,
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade300)),
+                        color: isPinged ? Colors.orange[50] : Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: isPinged ? Colors.orange : Colors.grey.shade300, width: isPinged ? 2 : 1)
+                        ),
                         child: ListTile(
-                          onTap: () => _viewDetailsReadOnly(report),
+                          onTap: () => _viewDetailsAsSupervisor(report),
                           contentPadding: const EdgeInsets.all(16),
-                          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          title: Row(
+                            children: [
+                              if (isPinged) const Padding(padding: EdgeInsets.only(right: 8), child: Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20)),
+                              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
+                            ],
+                          ),
                           subtitle: Text("Dept: $category", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
